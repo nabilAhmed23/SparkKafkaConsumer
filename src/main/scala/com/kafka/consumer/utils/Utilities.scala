@@ -3,7 +3,8 @@ package com.kafka.consumer.utils
 import java.text.SimpleDateFormat
 import java.util.Properties
 
-import com.google.gson.JsonParser
+import com.google.gson.{JsonObject, JsonParser, JsonPrimitive}
+import com.kafka.consumer.beans.{TwitterBean, TwitterTweetBean, TwitterUserBean}
 import org.apache.kafka.clients.consumer.ConsumerConfig
 
 object Utilities {
@@ -60,124 +61,97 @@ object Utilities {
     }
   }
 
-  def getTweetDetailsFromJson(json: String): Array[Any] = {
-    val tweetId = getValueFromJson(json, "id_str")
-    println(s"tweet id: $tweetId")
-    if (tweetId == null) {
-      null
-    } else {
-      val tweetText = getValueFromJson(json, "text")
-      println(s"text: $tweetText")
-      val tweetSource = getValueFromJson(json, "source")
-      println(s"source: $tweetSource")
-      val quotedTweetId = getValueFromJson(json, "quoted_status_id_str")
-      println(s"quoted tweet: $quotedTweetId")
-      val tweetCreatedAt = convertDateFormat(getValueFromJson(json, "created_at"), TWITTER_DATE_FORMAT, DATABASE_DATE_FORMAT)
-      println(s"created at: $tweetCreatedAt")
+  def getTweetDetailsFromJson(json: String): TwitterBean = {
+    try {
+      val tweetId = getValueFromJson(json, "id_str")
+      if (tweetId == null) {
+        null
+      } else {
+        val tweetText = getValueFromJson(json, "text")
+        val tweetSource = getValueFromJson(json, "source")
+        val quotedTweetId = getValueFromJson(json, "quoted_status_id_str")
+        val tweetCreatedAt = convertDateFormat(getValueFromJson(json, "created_at"), TWITTER_DATE_FORMAT, DATABASE_DATE_FORMAT)
 
-      var tweetUserId: String = null
-      var tweetUserName: String = null
-      var tweetUserScreenName: String = null
-      var tweetFullText: String = null
-      var quotedTweetJsonString: String = null
-      var quotedTweetText: String = null
-      var quotedTweetSource: String = null
-      var quotedTweetCreatedAt: String = null
-      var quotedUserJsonString: String = null
-      var quotedTweetUserId: String = null
-      var quotedTweetUserName: String = null
-      var quotedTweetUserScreenName: String = null
-      var quotedTweetFullText: String = null
+        var tweetUserId: String = null
+        var tweetUserName: String = null
+        var tweetUserScreenName: String = null
+        var tweetFullText: String = null
+        var quotedTweetJsonString: String = null
+        var quotedTweetText: String = null
+        var quotedTweetSource: String = null
+        var quotedTweetCreatedAt: String = null
+        var quotedUserJsonString: String = null
+        var quotedTweetUserId: String = null
+        var quotedTweetUserName: String = null
+        var quotedTweetUserScreenName: String = null
+        var quotedTweetFullText: String = null
 
-      val userJsonString = getValueFromJson(json, "user")
-      println(s"================\nuser: $userJsonString")
-      if (userJsonString != null) {
-        tweetUserId = getValueFromJson(userJsonString, "id_str")
-        tweetUserName = getValueFromJson(userJsonString, "name")
-        tweetUserScreenName = getValueFromJson(userJsonString, "screen_name")
-      }
-      println(s"user id: $tweetUserId")
-      println(s"user name: $tweetUserName")
-      println(s"user screen name: $tweetUserScreenName")
-
-      val extendedTweetJsonString = getValueFromJson(json, "extended_tweet")
-      println(s"================\nextended tweet: $extendedTweetJsonString")
-      if (extendedTweetJsonString != null) {
-        tweetFullText = getValueFromJson(extendedTweetJsonString, "full_text")
-      }
-      println(s"================\nfull text: $tweetFullText")
-
-      if (quotedTweetId != null) {
-        quotedTweetJsonString = getValueFromJson(json, "quoted_status")
-        println(s"================\nquoted tweet: $quotedTweetJsonString")
-        if (quotedTweetJsonString != null) {
-          quotedTweetText = getValueFromJson(quotedTweetJsonString, "text")
-          println(s"quoted text: $quotedTweetText")
-          quotedTweetSource = getValueFromJson(quotedTweetJsonString, "source")
-          println(s"quoted source: $quotedTweetSource")
-          quotedTweetCreatedAt = convertDateFormat(getValueFromJson(quotedTweetJsonString, "created_at"), TWITTER_DATE_FORMAT, DATABASE_DATE_FORMAT)
-          println(s"quoted created at: $quotedTweetCreatedAt")
-          quotedUserJsonString = getValueFromJson(quotedTweetJsonString, "user")
-          println(s"================\nquoted user: $quotedUserJsonString")
-          if (quotedUserJsonString != null) {
-            quotedTweetUserId = getValueFromJson(quotedUserJsonString, "id_str")
-            println(s"quoted user id: $quotedTweetUserId")
-            quotedTweetUserName = getValueFromJson(quotedUserJsonString, "name")
-            println(s"quoted user name: $quotedTweetUserName")
-            quotedTweetUserScreenName = getValueFromJson(quotedUserJsonString, "screen_name")
-            println(s"quoted user screen name: $quotedTweetUserScreenName")
-          }
-          val extendedQuotedTweetJsonString = getValueFromJson(quotedTweetJsonString, "extended_tweet")
-          println(s"================\nquoted extended tweet: $quotedUserJsonString")
-          if (extendedQuotedTweetJsonString != null) {
-            quotedTweetFullText = getValueFromJson(extendedQuotedTweetJsonString, "full_text")
-          }
-          println(s"quoted text full: $quotedTweetFullText")
+        val userJsonString = getValueFromJson(json, "user")
+        if (userJsonString != null) {
+          tweetUserId = getValueFromJson(userJsonString, "id_str")
+          tweetUserName = getValueFromJson(userJsonString, "name")
+          tweetUserScreenName = getValueFromJson(userJsonString, "screen_name")
         }
-      }
-      println("Processed tweet:")
-      println(s"$tweetId" +
-        s"\n$tweetText" +
-        s"\n$tweetSource" +
-        s"\n$quotedTweetId" +
-        s"\n$tweetCreatedAt" +
-        s"\n$tweetUserId" +
-        s"\n$tweetUserName" +
-        s"\n$tweetUserScreenName" +
-        s"\n$tweetFullText" +
-        s"\n$quotedTweetText" +
-        s"\n$quotedTweetSource" +
-        s"\n$quotedTweetCreatedAt" +
-        s"\n$quotedTweetUserId" +
-        s"\n$quotedTweetUserName" +
-        s"\n$quotedTweetUserScreenName" +
-        s"\n$quotedTweetFullText")
 
-      Array(tweetId.toInt,
-        tweetText,
-        tweetSource,
-        if (quotedTweetId != null) quotedTweetId.toInt else quotedTweetId,
-        tweetCreatedAt,
-        if (tweetUserId != null) tweetUserId.toInt else tweetUserId,
-        tweetUserName,
-        tweetUserScreenName,
-        tweetFullText,
-        quotedTweetText,
-        quotedTweetSource,
-        quotedTweetCreatedAt,
-        if (quotedTweetUserId != null) quotedTweetUserId.toInt else quotedTweetUserId,
-        quotedTweetUserName,
-        quotedTweetUserScreenName,
-        quotedTweetFullText)
+        val extendedTweetJsonString = getValueFromJson(json, "extended_tweet")
+        if (extendedTweetJsonString != null) {
+          tweetFullText = getValueFromJson(extendedTweetJsonString, "full_text")
+        }
+
+        if (quotedTweetId != null) {
+          quotedTweetJsonString = getValueFromJson(json, "quoted_status")
+          if (quotedTweetJsonString != null) {
+            quotedTweetText = getValueFromJson(quotedTweetJsonString, "text")
+            quotedTweetSource = getValueFromJson(quotedTweetJsonString, "source")
+            quotedTweetCreatedAt = convertDateFormat(getValueFromJson(quotedTweetJsonString, "created_at"), TWITTER_DATE_FORMAT, DATABASE_DATE_FORMAT)
+            quotedUserJsonString = getValueFromJson(quotedTweetJsonString, "user")
+            if (quotedUserJsonString != null) {
+              quotedTweetUserId = getValueFromJson(quotedUserJsonString, "id_str")
+              quotedTweetUserName = getValueFromJson(quotedUserJsonString, "name")
+              quotedTweetUserScreenName = getValueFromJson(quotedUserJsonString, "screen_name")
+            }
+            val extendedQuotedTweetJsonString = getValueFromJson(quotedTweetJsonString, "extended_tweet")
+            if (extendedQuotedTweetJsonString != null) {
+              quotedTweetFullText = getValueFromJson(extendedQuotedTweetJsonString, "full_text")
+            }
+          }
+        }
+
+        val tweetBean = new TwitterTweetBean(tweetId.toLong, tweetText, tweetSource, tweetCreatedAt, tweetFullText)
+        val userBean = if (tweetUserId == null) new TwitterUserBean() else
+          new TwitterUserBean(tweetUserId.toLong, tweetUserName, tweetUserScreenName)
+        val quotedTweetBean = if (quotedTweetId == null) new TwitterTweetBean() else
+          new TwitterTweetBean(quotedTweetId.toLong, quotedTweetText, quotedTweetSource, quotedTweetCreatedAt, quotedTweetFullText)
+        val quotedUserBean = if (quotedTweetUserId == null) new TwitterUserBean() else
+          new TwitterUserBean(quotedTweetUserId.toLong, quotedTweetUserName, quotedTweetUserScreenName)
+        val twitterBean = new TwitterBean(tweetBean, userBean, quotedTweetBean, quotedUserBean)
+        println(twitterBean)
+
+        twitterBean
+      }
+    } catch {
+      case e: Exception => println("Processing error")
+        null
     }
   }
 
   def getValueFromJson(json: String, key: String): String = {
     try {
-      JsonParser.parseString(json).getAsJsonObject.get(key).getAsString
+      val jsonValue = JsonParser.parseString(json).getAsJsonObject.get(key)
+      if (jsonValue != null) {
+        jsonValue match {
+          case _: JsonPrimitive =>
+            return jsonValue.getAsString
+          case _: JsonObject =>
+            return jsonValue.toString
+          case _ =>
+            return null
+        }
+      }
+      null
     } catch {
       case e: Exception =>
-        println(s"$key:: $json")
+        println(s"$key:: $json \n$e")
         null
     }
   }
