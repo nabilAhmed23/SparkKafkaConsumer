@@ -10,7 +10,6 @@ object SparkKafkaConsumerMain {
 
   def main(args: Array[String]): Unit = {
     val session = SparkSession.builder()
-      .master("spark://nabil-Inspiron-5570:7077")
       .config("spark.scheduler.mode", "FAIR")
       .getOrCreate()
     session.sparkContext.setLogLevel("ERROR")
@@ -24,7 +23,7 @@ object SparkKafkaConsumerMain {
 
     for (topic <- kafkaTopics) {
       val topicNew = Utilities.replaceSpaces(topic)
-      val databaseConsumer = new SparkKafkaConsumer(session, Utilities.getConsumerProperties(kafkaProperties), topicNew)
+      val databaseConsumer = new SparkKafkaConsumer(session, kafkaProperties, topic, topicNew)
       databaseConsumer.setName(s"$topicNew-Database-Consumer-Thread")
       databaseConsumer.start()
     }

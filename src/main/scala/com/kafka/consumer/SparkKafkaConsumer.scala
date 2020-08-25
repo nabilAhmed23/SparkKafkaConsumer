@@ -4,25 +4,42 @@ import java.time.Duration
 import java.util
 import java.util.Properties
 
-import com.kafka.consumer.beans.TwitterBean
 import com.kafka.consumer.utils.Utilities
 import org.apache.kafka.clients.consumer.{ConsumerRecords, KafkaConsumer}
-import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.types.{LongType, StringType, StructField, StructType}
+import org.apache.spark.sql.{Row, SaveMode, SparkSession}
 
 class SparkKafkaConsumer(var session: SparkSession,
-                         var consumerProperties: Properties,
+                         var kafkaProperties: Properties,
+                         var topic: String,
                          var topicAlias: String)
   extends Thread {
 
   override def run(): Unit = {
-    val consumer: KafkaConsumer[String, String] = new KafkaConsumer[String, String](consumerProperties)
+    var tweetList = List.empty[Row]
+    val jdbcDriver = kafkaProperties.getProperty(Utilities.DATABASE_DRIVER_PROPERTY)
+    val jdbcUrl = kafkaProperties.getProperty(Utilities.DATABASE_URL_PROPERTY)
+    val jdbcTable = kafkaProperties.getProperty(Utilities.DATABASE_TABLE_PROPERTY)
+    val jdbcProperties = Utilities.getDatabaseProperties(kafkaProperties)
+
+    val consumer: KafkaConsumer[String, String] = new KafkaConsumer[String, String](Utilities.getConsumerProperties(kafkaProperties))
     consumer.subscribe(util.Arrays.asList(topicAlias))
     println(s"$topicAlias:: Consumer subscribed to topics================")
 
     Runtime.getRuntime.addShutdownHook(new Thread(() => {
       println(s"$topicAlias::Caught consumer shutdown hook================")
       try {
+        if (tweetList.nonEmpty) {
+          println(s"$topicAlias:: Writing and committing ${tweetList.length} record(s) to database")
+          session.createDataFrame(session.sparkContext.parallelize(tweetList), Utilities.twitterStruct)
+            .write
+            .mode(SaveMode.Append)
+            .option("driver", jdbcDriver)
+            .jdbc(url = jdbcUrl,
+              table = jdbcTable,
+              connectionProperties = jdbcProperties)
+          consumer.commitSync()
+          println(s"$topicAlias:: Write and commit complete")
+        }
         consumer.close()
       } catch {
         case e: Exception =>
@@ -37,46 +54,32 @@ class SparkKafkaConsumer(var session: SparkSession,
         synchronized {
           try {
             println(s"$topicAlias:: Processing consumer records================")
-            var topicRecords = session.sparkContext.emptyRDD[TwitterBean]
             records.forEach(record => {
-              println(record.value())
-              val tweetDetails = Utilities.getTweetDetailsFromJson(record.value())
+              val tweetDetails = Utilities.getTweetDetailsFromJson(topic, topicAlias, record.value())
               if (tweetDetails != null) {
-                println(s"$topicAlias:: Consumer received message k at: ${record.timestamp()}\n================")
-                topicRecords = topicRecords.union(session.sparkContext.parallelize(List(tweetDetails)))
+                println(s"$topicAlias:: Consumer received message at: ${record.timestamp()}")
+                tweetList = tweetList :+ tweetDetails
+              }
+              if (tweetList.length > 16) {
+                println(s"$topicAlias:: Writing and committing ${tweetList.length} records to database")
+                session.createDataFrame(session.sparkContext.parallelize(tweetList), Utilities.twitterStruct)
+                  .write
+                  .mode(SaveMode.Append)
+                  .option("driver", jdbcDriver)
+                  .jdbc(url = jdbcUrl,
+                    table = jdbcTable,
+                    connectionProperties = jdbcProperties)
+                consumer.commitSync()
+                tweetList = List.empty[Row]
+                println(s"$topicAlias:: Write and commit complete")
               }
             })
-            if (topicRecords.count() > 0) {
-              println("================Twitter Bean Dataframe================")
-              session.createDataFrame(topicRecords, classOf[TwitterBean]).printSchema()
-              //              consumer.commitSync()
-            }
           } catch {
             case e: NoSuchMethodError => println(s"$topicAlias:: Error in processing $e")
+            case e: Exception => println(e)
           }
         }
       }
     }
-  }
-
-  def getTwitterStruct: StructType = {
-    StructType(List(
-      StructField("tweetId", LongType, nullable = false),
-      StructField("tweetText", StringType, nullable = false),
-      StructField("tweetSource", StringType, nullable = false),
-      StructField("tweetCreatedAt", StringType, nullable = false),
-      StructField("tweetFullText", StringType, nullable = false),
-      StructField("userId", LongType, nullable = false),
-      StructField("userName", StringType, nullable = false),
-      StructField("userScreenName", StringType, nullable = false),
-      StructField("quotedTweetId", LongType, nullable = true),
-      StructField("quotedTweetText", StringType, nullable = true),
-      StructField("quotedTweetSource", StringType, nullable = true),
-      StructField("quotedTweetCreatedAt", StringType, nullable = true),
-      StructField("quotedTweetFullText", StringType, nullable = true),
-      StructField("quotedTweetUserId", LongType, nullable = true),
-      StructField("quotedTweetUserName", StringType, nullable = true),
-      StructField("quotedTweetUserScreenName", StringType, nullable = true)
-    ))
   }
 }

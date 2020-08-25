@@ -23,7 +23,7 @@
     <orderEntry type="library" name="sbt: com.github.luben:zstd-jni:1.4.4-7:jar" level="project" />
     <orderEntry type="library" name="sbt: com.github.spotbugs:spotbugs-annotations:3.1.9:jar" level="project" />
     <orderEntry type="library" name="sbt: com.google.code.findbugs:jsr305:3.0.2:jar" level="project" />
-    <orderEntry type="library" name="sbt: com.google.code.gson:gson:2.8.6:jar" level="project" />
+    <orderEntry type="library" name="sbt: com.google.code.gson:gson:2.2.4:jar" level="project" />
     <orderEntry type="library" name="sbt: com.google.flatbuffers:flatbuffers-java:1.9.0:jar" level="project" />
     <orderEntry type="library" name="sbt: com.google.guava:guava:16.0.1:jar" level="project" />
     <orderEntry type="library" name="sbt: com.google.inject:guice:3.0:jar" level="project" />

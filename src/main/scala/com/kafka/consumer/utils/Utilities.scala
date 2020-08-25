@@ -1,11 +1,13 @@
 package com.kafka.consumer.utils
 
+import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import java.util.Properties
 
 import com.google.gson.{JsonObject, JsonParser, JsonPrimitive}
-import com.kafka.consumer.beans.{TwitterBean, TwitterTweetBean, TwitterUserBean}
 import org.apache.kafka.clients.consumer.ConsumerConfig
+import org.apache.spark.sql.Row
+import org.apache.spark.sql.types.{LongType, StringType, StructField, StructType, TimestampType}
 
 object Utilities {
 
@@ -15,13 +17,41 @@ object Utilities {
   val GROUP_ID_PROPERTY = "group.id"
   val KEY_DESERIALIZER_PROPERTY = "key.deserializer"
   val VALUE_DESERIALIZER_PROPERTY = "value.deserializer"
-
   val AUTO_OFFSET_RESET_PROPERTY = "auto.offset.reset"
+
+  val DATABASE_DRIVER_PROPERTY = "database.driver"
+  val DATABASE_URL_PROPERTY = "database.url"
+  val DATABASE_TABLE_PROPERTY = "database.table"
+  val DATABASE_USERNAME_PROPERTY = "database.username"
+  val DATABASE_PASSWORD_PROPERTY = "database.password"
 
   val DEFAULT_AUTO_OFFSET_RESET = "earliest"
 
   val TWITTER_DATE_FORMAT = "E MMMM dd hh:mm:ss zzzz yyyy"
-  val DATABASE_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss Z"
+  val DATABASE_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss"
+
+  private val jsonParser: JsonParser = new JsonParser()
+
+  val twitterStruct: StructType = StructType(List(
+    StructField("topic", StringType, nullable = false),
+    StructField("topic_alias", StringType, nullable = false),
+    StructField("tweet_id", LongType, nullable = false),
+    StructField("tweet_text", StringType, nullable = false),
+    StructField("tweet_source", StringType, nullable = false),
+    StructField("tweet_created_at", TimestampType, nullable = false),
+    StructField("tweet_full_text", StringType, nullable = true),
+    StructField("user_id", LongType, nullable = false),
+    StructField("user_name", StringType, nullable = false),
+    StructField("user_screen_name", StringType, nullable = false),
+    StructField("quoted_tweet_id", LongType, nullable = true),
+    StructField("quoted_tweet_text", StringType, nullable = true),
+    StructField("quoted_tweet_source", StringType, nullable = true),
+    StructField("quoted_tweet_created_at", TimestampType, nullable = true),
+    StructField("quoted_tweet_full_text", StringType, nullable = true),
+    StructField("quoted_tweet_user_id", LongType, nullable = true),
+    StructField("quoted_tweet_user_name", StringType, nullable = true),
+    StructField("quoted_tweet_user_screen_name", StringType, nullable = true)
+  ))
 
   def replaceSpaces(topicName: String): String = {
     topicName.trim.split(" ").mkString("_").trim
@@ -61,34 +91,37 @@ object Utilities {
     }
   }
 
-  def getTweetDetailsFromJson(json: String): TwitterBean = {
+  def getTweetDetailsFromJson(topic: String, topicAlias: String, json: String): Row = {
     try {
-      val tweetId = getValueFromJson(json, "id_str")
-      if (tweetId == null) {
+      var tmp = getValueFromJson(json, "id_str")
+      if (tmp == null) {
         null
       } else {
+        val tweetId = tmp.toLong
         val tweetText = getValueFromJson(json, "text")
         val tweetSource = getValueFromJson(json, "source")
-        val quotedTweetId = getValueFromJson(json, "quoted_status_id_str")
-        val tweetCreatedAt = convertDateFormat(getValueFromJson(json, "created_at"), TWITTER_DATE_FORMAT, DATABASE_DATE_FORMAT)
+        tmp = convertDateFormat(getValueFromJson(json, "created_at"), TWITTER_DATE_FORMAT, DATABASE_DATE_FORMAT)
+        val tweetCreatedAt: Timestamp = if (tmp != null) Timestamp.valueOf(tmp) else null
 
-        var tweetUserId: String = null
+        var quotedTweetId: Long = 0L
+        var tweetUserId: Long = 0L
         var tweetUserName: String = null
         var tweetUserScreenName: String = null
         var tweetFullText: String = null
         var quotedTweetJsonString: String = null
         var quotedTweetText: String = null
         var quotedTweetSource: String = null
-        var quotedTweetCreatedAt: String = null
+        var quotedTweetCreatedAt: Timestamp = null
         var quotedUserJsonString: String = null
-        var quotedTweetUserId: String = null
+        var quotedTweetUserId: Long = 0L
         var quotedTweetUserName: String = null
         var quotedTweetUserScreenName: String = null
         var quotedTweetFullText: String = null
 
         val userJsonString = getValueFromJson(json, "user")
         if (userJsonString != null) {
-          tweetUserId = getValueFromJson(userJsonString, "id_str")
+          tmp = getValueFromJson(userJsonString, "id_str")
+          tweetUserId = if (tmp != null) tmp.toLong else 0L
           tweetUserName = getValueFromJson(userJsonString, "name")
           tweetUserScreenName = getValueFromJson(userJsonString, "screen_name")
         }
@@ -98,15 +131,19 @@ object Utilities {
           tweetFullText = getValueFromJson(extendedTweetJsonString, "full_text")
         }
 
-        if (quotedTweetId != null) {
+        tmp = getValueFromJson(json, "quoted_status_id_str")
+        if (tmp != null) {
+          quotedTweetId = tmp.toLong
           quotedTweetJsonString = getValueFromJson(json, "quoted_status")
           if (quotedTweetJsonString != null) {
             quotedTweetText = getValueFromJson(quotedTweetJsonString, "text")
             quotedTweetSource = getValueFromJson(quotedTweetJsonString, "source")
-            quotedTweetCreatedAt = convertDateFormat(getValueFromJson(quotedTweetJsonString, "created_at"), TWITTER_DATE_FORMAT, DATABASE_DATE_FORMAT)
+            tmp = convertDateFormat(getValueFromJson(quotedTweetJsonString, "created_at"), TWITTER_DATE_FORMAT, DATABASE_DATE_FORMAT)
+            quotedTweetCreatedAt = if (tmp != null) Timestamp.valueOf(tmp) else null
             quotedUserJsonString = getValueFromJson(quotedTweetJsonString, "user")
             if (quotedUserJsonString != null) {
-              quotedTweetUserId = getValueFromJson(quotedUserJsonString, "id_str")
+              tmp = getValueFromJson(quotedUserJsonString, "id_str")
+              quotedTweetUserId = if (tmp != null) tmp.toLong else 0L
               quotedTweetUserName = getValueFromJson(quotedUserJsonString, "name")
               quotedTweetUserScreenName = getValueFromJson(quotedUserJsonString, "screen_name")
             }
@@ -117,41 +154,54 @@ object Utilities {
           }
         }
 
-        val tweetBean = new TwitterTweetBean(tweetId.toLong, tweetText, tweetSource, tweetCreatedAt, tweetFullText)
-        val userBean = if (tweetUserId == null) new TwitterUserBean() else
-          new TwitterUserBean(tweetUserId.toLong, tweetUserName, tweetUserScreenName)
-        val quotedTweetBean = if (quotedTweetId == null) new TwitterTweetBean() else
-          new TwitterTweetBean(quotedTweetId.toLong, quotedTweetText, quotedTweetSource, quotedTweetCreatedAt, quotedTweetFullText)
-        val quotedUserBean = if (quotedTweetUserId == null) new TwitterUserBean() else
-          new TwitterUserBean(quotedTweetUserId.toLong, quotedTweetUserName, quotedTweetUserScreenName)
-        val twitterBean = new TwitterBean(tweetBean, userBean, quotedTweetBean, quotedUserBean)
-        println(twitterBean)
-
-        twitterBean
+        Row(topic,
+          topicAlias,
+          tweetId,
+          tweetText,
+          tweetSource,
+          tweetCreatedAt,
+          tweetFullText,
+          tweetUserId,
+          tweetUserName,
+          tweetUserScreenName,
+          quotedTweetId,
+          quotedTweetText,
+          quotedTweetSource,
+          quotedTweetCreatedAt,
+          quotedTweetFullText,
+          quotedTweetUserId,
+          quotedTweetUserName,
+          quotedTweetUserScreenName)
       }
     } catch {
-      case e: Exception => println("Processing error")
+      case e: Exception =>
+        println("Processing error")
+
         null
     }
   }
 
   def getValueFromJson(json: String, key: String): String = {
     try {
-      val jsonValue = JsonParser.parseString(json).getAsJsonObject.get(key)
+      val jsonValue = jsonParser.parse(json).getAsJsonObject.get(key)
       if (jsonValue != null) {
         jsonValue match {
           case _: JsonPrimitive =>
             return jsonValue.getAsString
+
           case _: JsonObject =>
             return jsonValue.toString
+
           case _ =>
             return null
         }
       }
+
       null
     } catch {
       case e: Exception =>
-        println(s"$key:: $json \n$e")
+        println(s"$key:: $json\n$e")
+
         null
     }
   }
@@ -162,7 +212,16 @@ object Utilities {
     } catch {
       case e: Exception =>
         println(s"Error in processing date '$dateString'")
+
         null
     }
+  }
+
+  def getDatabaseProperties(properties: Properties): Properties = {
+    val databaseProperties = new Properties()
+    databaseProperties.setProperty("user", properties.getProperty(DATABASE_USERNAME_PROPERTY))
+    databaseProperties.setProperty("password", properties.getProperty(DATABASE_PASSWORD_PROPERTY))
+
+    databaseProperties
   }
 }
