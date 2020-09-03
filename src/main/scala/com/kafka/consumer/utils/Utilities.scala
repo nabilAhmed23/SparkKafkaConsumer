@@ -13,22 +13,22 @@ object Utilities {
 
   val CLI_TOPIC_SEPARATOR = "\\|"
 
-  val BOOTSTRAP_SERVERS_PROPERTY = "bootstrap.servers"
-  val GROUP_ID_PROPERTY = "group.id"
-  val KEY_DESERIALIZER_PROPERTY = "key.deserializer"
-  val VALUE_DESERIALIZER_PROPERTY = "value.deserializer"
-  val AUTO_OFFSET_RESET_PROPERTY = "auto.offset.reset"
+  private val BOOTSTRAP_SERVERS_PROPERTY = "bootstrap.servers"
+  private val GROUP_ID_PROPERTY = "group.id"
+  private val KEY_DESERIALIZER_PROPERTY = "key.deserializer"
+  private val VALUE_DESERIALIZER_PROPERTY = "value.deserializer"
+  private val AUTO_OFFSET_RESET_PROPERTY = "auto.offset.reset"
 
   val DATABASE_DRIVER_PROPERTY = "database.driver"
   val DATABASE_URL_PROPERTY = "database.url"
   val DATABASE_TABLE_PROPERTY = "database.table"
-  val DATABASE_USERNAME_PROPERTY = "database.username"
-  val DATABASE_PASSWORD_PROPERTY = "database.password"
+  private val DATABASE_USERNAME_PROPERTY = "database.username"
+  private val DATABASE_PASSWORD_PROPERTY = "database.password"
 
-  val DEFAULT_AUTO_OFFSET_RESET = "earliest"
+  private val DEFAULT_AUTO_OFFSET_RESET = "earliest"
 
-  val TWITTER_DATE_FORMAT = "E MMMM dd hh:mm:ss zzzz yyyy"
-  val DATABASE_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss"
+  private val TWITTER_DATE_FORMAT = "E MMMM dd hh:mm:ss zzzz yyyy"
+  private val DATABASE_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss"
 
   private val jsonParser: JsonParser = new JsonParser()
 
