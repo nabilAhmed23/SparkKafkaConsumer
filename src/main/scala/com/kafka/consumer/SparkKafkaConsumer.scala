@@ -26,25 +26,27 @@ class SparkKafkaConsumer(var session: SparkSession,
     println(s"$topicAlias:: Consumer subscribed to topics================")
 
     Runtime.getRuntime.addShutdownHook(new Thread(() => {
-      println(s"$topicAlias::Caught consumer shutdown hook================")
-      try {
-        if (tweetList.nonEmpty) {
-          println(s"$topicAlias:: Writing and committing ${tweetList.length} record(s) to database")
-          session.createDataFrame(session.sparkContext.parallelize(tweetList), Utilities.twitterStruct)
-            .write
-            .mode(SaveMode.Append)
-            .option("driver", jdbcDriver)
-            .jdbc(url = jdbcUrl,
-              table = jdbcTable,
-              connectionProperties = jdbcProperties)
-          consumer.commitSync()
-          println(s"$topicAlias:: Write and commit complete")
+      synchronized {
+        println(s"$topicAlias::Caught consumer shutdown hook================")
+        try {
+          if (tweetList.nonEmpty) {
+            println(s"$topicAlias:: Writing and committing ${tweetList.length} record(s) to database")
+            session.createDataFrame(session.sparkContext.parallelize(tweetList), Utilities.twitterStruct)
+              .write
+              .mode(SaveMode.Append)
+              .option("driver", jdbcDriver)
+              .jdbc(url = jdbcUrl,
+                table = jdbcTable,
+                connectionProperties = jdbcProperties)
+            consumer.commitSync()
+            println(s"$topicAlias:: Write and commit complete")
+          }
+          consumer.close()
+        } catch {
+          case _: Exception =>
+            session.stop()
+            println(s"$topicAlias:: Consumer spark session terminated================")
         }
-        consumer.close()
-      } catch {
-        case e: Exception =>
-          session.stop()
-          println(s"$topicAlias:: Consumer spark session terminated================")
       }
     }))
 

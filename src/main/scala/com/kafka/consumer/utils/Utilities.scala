@@ -174,7 +174,7 @@ object Utilities {
           quotedTweetUserScreenName)
       }
     } catch {
-      case e: Exception =>
+      case _: Exception =>
         println("Processing error")
 
         null
@@ -210,7 +210,7 @@ object Utilities {
     try {
       new SimpleDateFormat(destFormat).format(new SimpleDateFormat(srcFormat).parse(dateString))
     } catch {
-      case e: Exception =>
+      case _: Exception =>
         println(s"Error in processing date '$dateString'")
 
         null
