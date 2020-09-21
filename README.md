@@ -8,16 +8,16 @@ The `.properties` file should contain the following properties:
 
 | Property                      | Description                                            |  
 | :---------------------------- | :----------------------------------------------------- |  
-| `bootstrap.servers`:          | Kafka Bootstrap Server(s) (comma-separated)            |  
-| `group.id`:                   | Consumer Group ID                                      |  
-| `key.deserializer`:           | Fully Qualified Class Name of Kafka Key Deserializer   |  
-| `value.deserializer`:         | Fully Qualified Class Name of Kafka Value Deserializer |  
-| `auto.offset.reset`:          | Offset Reset Policy, default = earliest                |  
-| `database.driver`:            | Driver Name for database                               |  
-| `database.url`:               | JDBC URL for database                                  |  
-| `database.table`:             | Table name to push tweets into                         |  
-| `database.username`:          | Username for database authentication                   |  
-| `database.password`:          | Password for database authentication                   |  
+| `bootstrap.servers`          | Kafka Bootstrap Server(s) (comma-separated)            |  
+| `group.id`                   | Consumer Group ID                                      |  
+| `key.deserializer`           | Fully Qualified Class Name of Kafka Key Deserializer   |  
+| `value.deserializer`         | Fully Qualified Class Name of Kafka Value Deserializer |  
+| `auto.offset.reset`          | Offset Reset Policy, default = earliest                |  
+| `database.driver`            | Driver Name for database                               |  
+| `database.url`               | JDBC URL for database                                  |  
+| `database.table`             | Table name to push tweets into                         |  
+| `database.username`          | Username for database authentication                   |  
+| `database.password`          | Password for database authentication                   |  
   
 Example (MySQL):  
 `bootstrap.servers=localhost:9092,localhost:9093`  
