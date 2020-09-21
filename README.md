@@ -35,10 +35,12 @@ Example (MySQL):
 The list of topics/keywords to subscribe to.  
   
 Syntax:  
-`spark-submit --master <master_url> --jars <jdbc_jar> <JAR_file_build> <properties_file> <tweets_table>`  
+`spark-submit --master <master_url> --jars <jdbc_jar> <JAR_file_build> <properties_file> <list_of_topics>`  
   
 Example:  
-`spark-submit --master localhost:7077 --jars mysql-connector-java-8.0.21.jar /path/to/SparkKafkaConsumer.jar /path/to/consumer.properties tweets_table`  
+`spark-submit --master localhost:7077 --jars mysql-connector-java-8.0.21.jar /path/to/SparkKafkaConsumer.jar /path/to/consumer.properties "apache kafka|apache spark|scala"`  
+
+`spark-submit --master localhost:7077 --jars mysql-connector-java-8.0.21.jar /path/to/SparkKafkaConsumer.jar /path/to/consumer.properties "apache kafka"`  
   
 Note:  
 This project was built on top of Spark 3.0.0 for Hadoop 2.7, with Scala version 2.12.11, Java 8 (u251), and sbt version 1.3.13.  
