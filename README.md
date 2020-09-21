@@ -6,8 +6,8 @@ The arguments required to run the spark job are as follows:
 1) Location of consumer `.properties` file:  
 The `.properties` file should contain the following properties:  
 
-| Property                      | Description                                            |  
-| :---------------------------- | :----------------------------------------------------- |  
+| Property                     | Description                                            |  
+| :--------------------------- | :----------------------------------------------------- |  
 | `bootstrap.servers`          | Kafka Bootstrap Server(s) (comma-separated)            |  
 | `group.id`                   | Consumer Group ID                                      |  
 | `key.deserializer`           | Fully Qualified Class Name of Kafka Key Deserializer   |  
